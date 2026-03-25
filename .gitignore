@@ -1,0 +1,18 @@
+# pcap files - never push real capture data
+*.pcap
+*.cap
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# Environment
+.env
+
+# OS stuff
+.DS_Store
+Thumbs.db
