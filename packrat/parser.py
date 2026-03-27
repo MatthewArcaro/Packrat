@@ -105,5 +105,5 @@ def parse_pcap(filepath):
 
             parsed.append(entry)
 
-    print(f"[*] Parsed {len(parsed)} packets successfully.")
+    print(f"Parsed {len(parsed)} packets successfully!!! Doing DNS Resolution, This normally takes a few seconds")
     return parsed

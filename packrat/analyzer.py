@@ -1,4 +1,12 @@
 from collections import Counter
+import socket
+
+def resolve_hostname(ip):
+    try:
+        return socket.gethostbyaddr(ip)[0]
+    except:
+        return None
+
 
 def analyze(parsed_packets):
     total_packets = len(parsed_packets)
@@ -25,6 +33,8 @@ def analyze(parsed_packets):
     ## most active IP first
     ip_sum.sort(key=lambda x: x["sent"] + x["received"], reverse=True) ## shoutout to professor Liang
 
+    for entry in ip_sum[:10]:
+        entry["hostname"] = resolve_hostname(entry["ip"])
     ## ARP summary
     arp_packets = [pkt for pkt in parsed_packets if pkt["protocol"] == "ARP"]
     arp_requests = [pkt for pkt in arp_packets if pkt["info"].get("arp_op") == "request"]

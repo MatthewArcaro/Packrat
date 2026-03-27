@@ -8,6 +8,7 @@ console = Console()
 def render(results):
     # header
     console.print(Panel("[bold cyan]packrat 🐀[/bold cyan] — packet analysis results", box=box.ROUNDED))
+    console.print("\n  [green]●[/green] internal ip   [yellow]●[/yellow] external ip   [red]●[red] suspicious ip\n")
 
     # file summary
     console.print("\n[bold cyan]file summary[/bold cyan]")
@@ -24,13 +25,30 @@ def render(results):
     # top IPs table
     console.print("\n[bold cyan]top ip addresses[/bold cyan]")
     table = Table(box=box.SIMPLE, show_header=True, header_style="bold dim")
-    table.add_column("ip address", style="green")
+    table.add_column("ip address")
+    table.add_column("hostname", style="dim")
     table.add_column("pkts sent", justify="right")
     table.add_column("pkts received", justify="right")
     table.add_column("total", justify="right", style="cyan")
+
+    def classify_ip(ip):
+        if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("172.16."):
+            return "green"
+        return "yellow"
+
+    suspicious_ips = []
+    for a in results["anomalies"]:
+        if "from" in a:
+            parts = a.split()
+            for part in parts:
+                if part.count(".") == 3 and not part.startswith("10.") and not part.startswith("192.168."):
+                    suspicious_ips.append(part)
+
     for ip in results["ip_summary"]:
+        color = "red" if ip["ip"] in suspicious_ips else classify_ip(ip["ip"])
         table.add_row(
-            ip["ip"],
+            f"[{color}]{ip['ip']}[/{color}]",
+            ip.get("hostname") or "unknown",
             str(ip["sent"]),
             str(ip["received"]),
             str(ip["sent"] + ip["received"])
