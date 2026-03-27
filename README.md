@@ -24,5 +24,5 @@ If you are using this tool and have any suggestions, feel free to open an issue 
 
     Packrat reports HTTP at the packet level, not the transaction level. What this means is that since there is no TCP reassembly, A single HTTP request/response may span multiple packets. This can lead to a higher number of packets according to Wireshark or other Networking tools.
 
-    That being said, use Packrat convenience not pin point accuracy. 
+    That being said, use Packrat for convenience not pin point accuracy. 
 ******
