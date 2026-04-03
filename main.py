@@ -12,9 +12,11 @@ def main():
     parser.add_argument("filepath", help="path to your .pcap file")
     parser.add_argument("--export", choices=["json", "html", "txt"], help="export results to a file")
     parser.add_argument("--filter", help="filter by IP address or protocol (e.g. 10.2.28.88 or DNS)")
+    parser.add_argument("--version", action="version", version="packrat 1.0.0")
+    parser.add_argument("--nd", action="store_true", help="skip DNS resolution for faster results")
     args = parser.parse_args()
 
-    packets = parse_pcap(args.filepath)
+    packets = parse_pcap(args.filepath, skip_dns=args.nd)
 
     if packets is None:
         return
@@ -37,7 +39,7 @@ def main():
             return
         print(f"[*] Filter applied: {args.filter} — {len(packets)} packets matched")
 
-    results = analyze(packets)
+    results = analyze(packets, skip_dns=args.nd)
     render(results)
 
     if args.export:

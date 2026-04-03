@@ -1,8 +1,9 @@
 from scapy.all import rdpcap, IP, IPv6, TCP, UDP, ICMP, ARP, DNS, Raw
 from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse
-
-def parse_pcap(filepath):
-    print(f"🐀 Digging through your file: {filepath}...")
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+import os
+def parse_pcap(filepath, skip_dns=False):
+    print(f"🐀 Loading {os.path.basename(filepath)} into memory, this may take a moment depending on the size of your packet...")
     
     try:
         packets = rdpcap(filepath)
@@ -15,95 +16,109 @@ def parse_pcap(filepath):
 
     parsed = []
 
-    for pkt in packets:
-        entry = {
-            "size": len(pkt),
-            "protocol": "OTHER",
-            "src": None,
-            "dst": None,
-            "sport": None,
-            "dport": None,
-            "info": {}
-        }
+    ## parser loading bar
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[cyan]parsing packets..."),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+    ) as progress:
+        task = progress.add_task("parsing", total=len(packets))
 
-        # ARP
-        if ARP in pkt:
-            entry["protocol"] = "ARP"
-            entry["src"] = pkt[ARP].psrc
-            entry["dst"] = pkt[ARP].pdst
-            entry["info"]["arp_op"] = "request" if pkt[ARP].op == 1 else "reply"
-            parsed.append(entry)
-            continue
+        for pkt in packets:
+            progress.advance(task)
+            entry = {
+                "size": len(pkt),
+                "protocol": "OTHER",
+                "src": None,
+                "dst": None,
+                "sport": None,
+                "dport": None,
+                "info": {}
+            }
 
-        # IP layer
-        if IP in pkt:
-            entry["src"] = pkt[IP].src
-            entry["dst"] = pkt[IP].dst
-        elif IPv6 in pkt:
-            entry["src"] = pkt[IPv6].src
-            entry["dst"] = pkt[IPv6].dst
-            entry["protocol"] = "IPv6"
+            # ARP
+            if ARP in pkt:
+                entry["protocol"] = "ARP"
+                entry["src"] = pkt[ARP].psrc
+                entry["dst"] = pkt[ARP].pdst
+                entry["info"]["arp_op"] = "request" if pkt[ARP].op == 1 else "reply"
+                parsed.append(entry)
+                continue
 
-        if IP in pkt or IPv6 in pkt:
-            if TCP in pkt:
-                entry["protocol"] = "TCP"
-                entry["sport"] = pkt[TCP].sport
-                entry["dport"] = pkt[TCP].dport
+            # IP layer
+            if IP in pkt:
+                entry["src"] = pkt[IP].src
+                entry["dst"] = pkt[IP].dst
+            elif IPv6 in pkt:
+                entry["src"] = pkt[IPv6].src
+                entry["dst"] = pkt[IPv6].dst
+                entry["protocol"] = "IPv6"
 
-                # HTTP
-                if (pkt[TCP].dport == 80 or pkt[TCP].sport == 80) and Raw in pkt:
-                    entry["protocol"] = "HTTP"
-                    if HTTPRequest in pkt:
-                        entry["info"]["http_method"] = pkt[HTTPRequest].Method.decode(errors="ignore")
-                        entry["info"]["http_host"] = pkt[HTTPRequest].Host.decode(errors="ignore")
-                        entry["info"]["http_path"] = pkt[HTTPRequest].Path.decode(errors="ignore")
-                    elif HTTPResponse in pkt:
-                        entry["info"]["http_status"] = pkt[HTTPResponse].Status_Code.decode(errors="ignore")
+            ## HTTP are HTTPS are buiilt off IP. ALl protocols off IP is here
+            if IP in pkt or IPv6 in pkt:
+                if TCP in pkt:
+                    entry["protocol"] = "TCP"
+                    entry["sport"] = pkt[TCP].sport
+                    entry["dport"] = pkt[TCP].dport
 
-                # HTTPS/TLS
-                elif (pkt[TCP].dport == 443 or pkt[TCP].sport == 443) and Raw in pkt:
-                    entry["protocol"] = "HTTPS"
-                    payload = pkt[Raw].load
-                    if payload[0:1] == b'\x16':
-                        entry["info"]["tls"] = "handshake"
-                    else:
-                        entry["info"]["tls"] = "encrypted data"
+                    # HTTP
+                    if (pkt[TCP].dport == 80 or pkt[TCP].sport == 80) and Raw in pkt:
+                        entry["protocol"] = "HTTP"
+                        if HTTPRequest in pkt:
+                            entry["info"]["http_method"] = pkt[HTTPRequest].Method.decode(errors="ignore")
+                            entry["info"]["http_host"] = pkt[HTTPRequest].Host.decode(errors="ignore")
+                            entry["info"]["http_path"] = pkt[HTTPRequest].Path.decode(errors="ignore")
+                        elif HTTPResponse in pkt:
+                            entry["info"]["http_status"] = pkt[HTTPResponse].Status_Code.decode(errors="ignore")
 
-                # SSH
-                elif pkt[TCP].dport == 22 or pkt[TCP].sport == 22:
-                    entry["protocol"] = "SSH"
+                    # HTTPS/TLS
+                    elif (pkt[TCP].dport == 443 or pkt[TCP].sport == 443) and Raw in pkt:
+                        entry["protocol"] = "HTTPS"
+                        payload = pkt[Raw].load
+                        if payload[0:1] == b'\x16': ## This is a handshake signature IDk
+                            entry["info"]["tls"] = "handshake"
+                        else:
+                            entry["info"]["tls"] = "encrypted data"
 
-                # FTP
-                elif pkt[TCP].dport == 21 or pkt[TCP].sport == 21:
-                    entry["protocol"] = "FTP"
+                    # SSH
+                    elif pkt[TCP].dport == 22 or pkt[TCP].sport == 22:
+                        entry["protocol"] = "SSH" ## ssh obiscouylr port 22
 
-                # SMTP
-                elif pkt[TCP].dport == 25 or pkt[TCP].sport == 25:
-                    entry["protocol"] = "SMTP"
+                    # FTP
+                    elif pkt[TCP].dport == 21 or pkt[TCP].sport == 21:
+                        entry["protocol"] = "FTP" ## FTP ports 21
 
-                # IMAP
-                elif pkt[TCP].dport == 143 or pkt[TCP].sport == 143:
-                    entry["protocol"] = "IMAP"
+                    # SMTP
+                    elif pkt[TCP].dport == 25 or pkt[TCP].sport == 25:
+                        entry["protocol"] = "SMTP" ## mailing SMTP
 
-            elif UDP in pkt:
-                entry["protocol"] = "UDP"
-                entry["sport"] = pkt[UDP].sport
-                entry["dport"] = pkt[UDP].dport
+                    # IMAP
+                    elif pkt[TCP].dport == 143 or pkt[TCP].sport == 143:
+                        entry["protocol"] = "IMAP" ## idk who uses IMAP
 
-                # DNS
-                if DNS in pkt:
-                    entry["protocol"] = "DNS"
-                    if pkt[DNS].qr == 0 and pkt[DNS].qdcount > 0:
-                        entry["info"]["dns_query"] = pkt[DNS].qd.qname.decode(errors="ignore").rstrip(".")
-                    elif pkt[DNS].qr == 1:
-                        entry["info"]["dns_response"] = True
-                elif pkt[UDP].dport == 53 or pkt[UDP].sport == 53:
-                    entry["protocol"] = "DNS"
+                elif UDP in pkt: ## who uses UDP?
+                    entry["protocol"] = "UDP"
+                    entry["sport"] = pkt[UDP].sport
+                    entry["dport"] = pkt[UDP].dport
 
-            elif ICMP in pkt:
-                entry["protocol"] = "ICMP"
+                    # DNS
+                    if DNS in pkt:
+                        entry["protocol"] = "DNS"
+                        if pkt[DNS].qr == 0 and pkt[DNS].qdcount > 0:
+                            entry["info"]["dns_query"] = pkt[DNS].qd.qname.decode(errors="ignore").rstrip(".")
+                        elif pkt[DNS].qr == 1:
+                            entry["info"]["dns_response"] = True
+                    elif pkt[UDP].dport == 53 or pkt[UDP].sport == 53:
+                        entry["protocol"] = "DNS"
 
-            parsed.append(entry)
+                elif ICMP in pkt:
+                    entry["protocol"] = "ICMP"
 
-    print(f"Parsed {len(parsed)} packets successfully!!! Doing DNS Resolution, This normally takes a few seconds")
+                parsed.append(entry)
+
+    if skip_dns:
+        print(f"Parsed {len(parsed)} packets successfully!!")
+    else:
+        print(f"Parsed {len(parsed)} packets successfully! Doing DNS resolution, give me a few more seconds please! (skip with --nd)")
     return parsed

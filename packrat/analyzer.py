@@ -8,7 +8,7 @@ def resolve_hostname(ip):
         return None
 
 
-def analyze(parsed_packets):
+def analyze(parsed_packets, skip_dns=False):
     total_packets = len(parsed_packets)
     total_bytes = sum(pkt["size"] for pkt in parsed_packets)
 
@@ -34,7 +34,10 @@ def analyze(parsed_packets):
     ip_sum.sort(key=lambda x: x["sent"] + x["received"], reverse=True) ## shoutout to professor Liang
 
     for entry in ip_sum[:10]:
-        entry["hostname"] = resolve_hostname(entry["ip"])
+        if skip_dns:
+            entry["hostname"] = None
+        else:
+            entry["hostname"] = resolve_hostname(entry["ip"])
     ## ARP summary
     arp_packets = [pkt for pkt in parsed_packets if pkt["protocol"] == "ARP"]
     arp_requests = [pkt for pkt in arp_packets if pkt["info"].get("arp_op") == "request"]
