@@ -16,3 +16,8 @@ __pycache__/
 # OS stuff
 .DS_Store
 Thumbs.db
+
+## just automated stuff
+packrat_cli.egg-info/
+dist/
+build/

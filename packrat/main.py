@@ -12,7 +12,7 @@ def main():
     parser.add_argument("filepath", help="path to your .pcap file")
     parser.add_argument("--export", choices=["json", "html", "txt"], help="export results to a file")
     parser.add_argument("--filter", help="filter by IP address or protocol (e.g. 10.2.28.88 or DNS)")
-    parser.add_argument("--version", action="version", version="packrat 1.0.0")
+    parser.add_argument("--version", action="version", version="packrat 1.0.2")
     parser.add_argument("--nd", action="store_true", help="skip DNS resolution for faster results")
     args = parser.parse_args()
 

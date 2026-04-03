@@ -7,8 +7,34 @@ After using tshark I just wanted something simpler. Something I could run and im
 
 If you are using this tool and have any suggestions, feel free to open an issue or reach out!
 
+## install
+```bash
+pip install packrat-cli
+```
+
+## usage
+```bash
+# basic analysis
+packrat capture.pcap
+
+# filter by IP or protocol
+packrat capture.pcap --filter 192.168.1.5
+packrat capture.pcap --filter DNS
+
+# export results
+packrat capture.pcap --export json
+packrat capture.pcap --export html
+packrat capture.pcap --export txt
+
+# skip DNS resolution (faster)
+packrat capture.pcap --nd
+
+# check version
+packrat --version
+```
+
 ## Screenshot
-![packrat screenshot](assets/packrat-sample.JPG)
+![packrat screenshot](https://raw.githubusercontent.com/MatthewArcaro/packrat/main/assets/packrat-sample.JPG)
 
 ## features
 - Protocol breakdown — TCP, UDP, DNS, HTTP, HTTPS, SSH, FTP, SMTP, IMAP, ARP
