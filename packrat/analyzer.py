@@ -3,7 +3,7 @@ import socket
 
 def resolve_hostname(ip):
     try:
-        return socket.gethostbyaddr(ip)[0]
+        return socket.gethostbyaddr(ip)[0] ## this get the IP name
     except:
         return None
 
@@ -37,9 +37,9 @@ def analyze(parsed_packets, skip_dns=False):
         if skip_dns:
             entry["hostname"] = None
         else:
-            entry["hostname"] = resolve_hostname(entry["ip"])
+            entry["hostname"] = resolve_hostname(entry["ip"]) ### for every Ip get the name with resolve_hostname
     ## ARP summary
-    arp_packets = [pkt for pkt in parsed_packets if pkt["protocol"] == "ARP"]
+    arp_packets = [pkt for pkt in parsed_packets if pkt["protocol"] == "ARP"] ## mark ARP 
     arp_requests = [pkt for pkt in arp_packets if pkt["info"].get("arp_op") == "request"]
     arp_replies = [pkt for pkt in arp_packets if pkt["info"].get("arp_op") == "reply"]
 
@@ -50,7 +50,7 @@ def analyze(parsed_packets, skip_dns=False):
         for pkt in dns_packets
         if "dns_query" in pkt["info"]
     ]
-    top_dns = Counter(dns_queries).most_common(10)
+    top_dns = Counter(dns_queries).most_common(10) ## count all top DNS
 
     ## HTTP summary
     http_packets = [pkt for pkt in parsed_packets if pkt["protocol"] == "HTTP"]
@@ -97,7 +97,7 @@ def analyze(parsed_packets, skip_dns=False):
     if len(dns_queries) > 500:
         anomalies.append(f"High DNS query volume — {len(dns_queries)} queries, possible DNS tunneling")
 
-    # FTP detected - always worth flagging
+    # FTP detected. FTP is never a good answer
     if len(ftp_packets) > 0:
         anomalies.append(f"FTP traffic detected — {len(ftp_packets)} packets, FTP sends credentials in plaintext!")
 
