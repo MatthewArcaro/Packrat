@@ -5,7 +5,7 @@ from rich import box
 
 console = Console()
 
-def render(results):
+def render(results, detections=None):
     # header
     console.print(Panel("[bold cyan]packrat 🐀[/bold cyan] — packet analysis results", box=box.ROUNDED))
     console.print("\n  [green]●[/green] internal ip   [yellow]●[/yellow] external ip   [red]●[red] suspicious ip\n")
@@ -122,5 +122,15 @@ def render(results):
             console.print(f"  [red]![/red]  {a}")
     else:
         console.print("  [green]✓[/green]  No anomalies detected")
+    
+    # detections
+    console.print("\n[bold cyan]threat detections[/bold cyan]")
+    if detections:
+        for d in detections:
+            severity_color = "red" if d["severity"] == "high" else "yellow"
+            console.print(f"  [{severity_color}]![/{severity_color}]  [bold]{d['type']}[/bold] — {d['detail']}")
+    else:
+        console.print("  [green]✓[/green]  No threats detected")
+
 
     console.print()

@@ -44,6 +44,15 @@ packrat --version
 - Anomaly detection — port scans, ARP floods, DNS tunneling, FTP plaintext
 - Export to JSON, HTML, or TXT
 
+## changelog
+
+### v1.1.0 (most recent)
+- Added threat detection engine with rules for SYN flood, ICMP flood, UDP flood, port scan, and ARP scan
+- Refactored codebase into layered architecture (core API, CLI, detection)
+
+### v1.0.2
+- Initial release
+
 
 
 ## NOTE 

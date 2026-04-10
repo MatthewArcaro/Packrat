@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="packrat-cli",
-    version="1.0.2",
+    version="1.1.2",
     packages=find_packages(),
     install_requires=[
         "scapy",
@@ -10,7 +10,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "packrat=packrat.main:main",
+            "packrat=packrat.cli.main:main",
         ],
     },
     author="Matthew Arcaro",
